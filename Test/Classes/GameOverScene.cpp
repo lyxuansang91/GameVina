@@ -4,8 +4,9 @@
 #include <iostream>
 #include "DefaultSocket.h"
 
-#include <google/config.h>
-#include <google/protobuf/message_lite.h>
+#pragma comment(lib, "libprotobuf.lib")
+
+#include <google/protobuf/message.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/io/coded_stream.h>
@@ -15,7 +16,6 @@
 
 USING_NS_CC;
 using namespace net::jarlehansen::protobuf::javame;
-using namespace google::protobuf::io;
 using namespace std;
 
 
@@ -40,20 +40,24 @@ void testProtoLogin() {
 	loginRequest->set_password("12345");
 	loginRequest->set_cp("1");
 	loginRequest->set_appversion("1");
-	loginRequest->set_clienttype(1);	
-	// loginRequest->ByteSize();
+	loginRequest->set_clienttype(1);
+	
+	CCLOG("byte size: %d" , loginRequest->ByteSize());
 	int size = loginRequest->ByteSize() + 4;
 	char* ackBuf = new char[size];
 	// ArrayOutputStream os(ackBuf, size);
-	ArrayOutputStream arrayOut(ackBuf, size);
-	CodedOutputStream codedOut(&arrayOut);
-	codedOut.WriteVarint32(loginRequest->ByteSize());
-	// loginRequest->SerializeToCodedStream(&codedOut);
+	google::protobuf::io::ArrayOutputStream arrayOut(ackBuf,size);
+	google::protobuf::io::CodedOutputStream codedOut(&arrayOut);
+	//codedOut.WriteVarint32(loginRequest->ByteSize());
+	loginRequest->SerializeToCodedStream(&codedOut);
 
 	DefaultSocket *defaultSocket = new DefaultSocket();
 	bool isConnected = defaultSocket->connectSocket("192.168.1.50", 1240);
 	CCLOG("already connected: %s", isConnected ? "true" : "false");
+	// CCLOG("Send data: %s", loginRequest->SerializeAsString());
 	defaultSocket->sendData(ackBuf, size);
+	vector<char> bufferRead(500);
+	defaultSocket->readData(bufferRead, 500);
 	defaultSocket->closeSocket();
 	delete(ackBuf);
 }
